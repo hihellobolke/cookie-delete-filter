@@ -1,4 +1,4 @@
-pub const DEFAULT_COMPONENT_NAME: &str = "itwasme";
+pub const DEFAULT_COMPONENT_NAME: &str = "cookie-delete-filter";
 pub const DEFAULT_COOKIE_NAMES: [&str; 2] = ["ignore1", "ignore2"];
 
 pub fn default_component_name() -> String {
