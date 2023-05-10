@@ -50,7 +50,7 @@ static_resources:
                             value: |
                               {
                                 "component_name": "cookie-delete-filter",
-                                "cookie_names": ["remove-me-2", "and-this-2"]
+                                "cookie_names": ["remove-this-cookie", "remove-this-cookie-too"]
                               }
                           name: "cookie-delete-filter"
                           vm_config:

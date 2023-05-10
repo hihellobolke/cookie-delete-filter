@@ -1,8 +1,6 @@
 // Apache Licence - https://apache.org/licenses/LICENSE-2.0.txt
 // author: hihellobolke@github
 
-use cookie::Cookie;
-
 use log::{debug, error, info};
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
@@ -56,20 +54,49 @@ impl RootContext for FilterRoot {
 
 impl HttpContext for Filter {
     fn on_http_request_headers(&mut self, _: usize, _: bool) -> Action {
-        match self.get_http_request_header("cookie") {
-            Some(c) => {
-                debug!("Original header ==> `cookie: {}`", c);
-                let c: String = Cookie::split_parse(c)
-                    .filter_map(|x| x.ok())
-                    .filter(|x| !self.config.cookie_names.contains(&x.name().to_owned()))
-                    .map(|y| y.to_string())
-                    .collect::<Vec<String>>()
-                    .join("; ");
-                debug!("Modified header ==> `cookie: {}`", c);
-                self.set_http_request_header("cookie", Some(c.as_str()));
-                Action::Continue
+        let mut cookie_collector = String::new();
+
+        for (k, v) in self.get_http_request_headers().iter() {
+            if k == "cookie" {
+                debug!("original cookie ==> `cookie: {:?}`", v);
+                let mut cookie_modified = String::new();
+
+                let s: Vec<&str> = v.split(';').collect();
+                for &x in s.iter() {
+                    if let Some(c) = x.split('=').next() {
+                        if self.config.cookie_names.contains(&c.trim().to_owned()) {
+                            debug!(" ++ remove cookie: {}", c);
+                            continue;
+                        }
+                    }
+
+                    let x = x.trim();
+                    if x.is_empty() {
+                        continue;
+                    }
+
+                    cookie_modified.push_str(x);
+                    cookie_modified.push_str("; ");
+                }
+
+                let cookie_modified = cookie_modified.trim();
+                if !cookie_modified.is_empty() {
+                    cookie_collector.push_str(cookie_modified);
+                    cookie_collector.push(' ');
+                    debug!(" ++ updated cookie ==> `cookie: {:?}`", cookie_modified);
+                }
             }
-            _ => Action::Continue,
         }
+
+        if !cookie_collector.is_empty() {
+            cookie_collector = cookie_collector.trim().to_owned();
+            if cookie_collector.ends_with(';') {
+                cookie_collector.pop();
+            }
+            debug!("final cookie ==> `cookie: {:?}`", cookie_collector);
+            self.set_http_request_header("cookie", Some(cookie_collector.as_str()));
+        }
+
+        Action::Continue
     }
 }
